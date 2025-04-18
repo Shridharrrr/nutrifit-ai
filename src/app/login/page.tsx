@@ -1,30 +1,43 @@
 "use client"
+
 import { useState } from "react";
-import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/config/firebase";
+import { SigninUser, GoogleSignupUser } from "@/methods/auth";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async () => {
+
+    if (!email.trim() || !password.trim()) {
+      alert("Please fill in both email and password.");
+      return;
+    }
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-    //router.push("/home"); 
+      setIsLoading(true);
+      await SigninUser(email,password);
+    router.push("/home"); 
     } catch (error) {
       alert("Login failed: " + (error as any).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      //router.push("/home");
+      setIsLoading(true);
+      await GoogleSignupUser();
+      router.push("/home");
     } catch (error) {
       alert("Google login failed: " + (error as any).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -60,22 +73,17 @@ export default function Login() {
               />
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span className="text-gray-600">Remember me</span>
-              </label>
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
-                Forgot password?
-              </a>
-            </div>
-
             <button
+              disabled={isLoading}
               onClick={handleLogin}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transform transition-all duration-200 flex items-center justify-center space-x-2 font-medium"
+              className={`w-full bg-blue-600 text-white py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                isLoading
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:bg-blue-700 active:transform active:scale-95"
+              }`}
             >
-              <span>Sign in</span>
-              <ArrowRight className="h-4 w-4" />
+              <span>{isLoading ? "Logging in..." : "Log in"}</span>
+              {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </div>
 
@@ -90,7 +98,10 @@ export default function Login() {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-2 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200"
+            disabled={isLoading}
+            className={`w-full flex items-center justify-center space-x-2 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 ${
+              isLoading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path

@@ -1,6 +1,6 @@
-import {auth,db} from "../config/firebase"
-import { onAuthStateChanged,signOut,User } from "firebase/auth"
-import {getDoc,doc} from 'firebase/firestore'
+import { auth, db, googleProvider } from "../config/firebase"
+import { onAuthStateChanged, signOut, User, createUserWithEmailAndPassword, signInWithPopup, signInWithEmailAndPassword } from "firebase/auth"
+import { getDoc, doc } from 'firebase/firestore'
 import userStore from "@/store/userStore"
 
 export const listenToAuthChanges = () => {
@@ -25,3 +25,15 @@ export const LogoutUser = async () => {
     await signOut(auth)
     userStore.getState().clearUser()
 }
+
+export const SignupUser = async ( email:string, password:string ) => {
+      await createUserWithEmailAndPassword(auth, email, password);
+  };
+
+export const SigninUser = async ( email:string, password:string ) => {
+      await signInWithEmailAndPassword(auth, email, password);
+};  
+
+export const GoogleSignupUser = async () => {
+      await signInWithPopup(auth, googleProvider);
+  };

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { auth, googleProvider } from "@/config/firebase";
-import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { SignupUser, GoogleSignupUser } from "@/methods/auth";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight } from "lucide-react";
 
@@ -13,10 +12,28 @@ export default function Signup() {
   const router = useRouter();
 
   const handleSignup = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*\d).{6,}$/;
+  
+    if (!email.trim() || !password.trim()) {
+      alert("Please fill in both email and password.");
+      return;
+    }
+  
+    if (!emailRegex.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+  
+    if (!passwordRegex.test(password)) {
+      alert("Password does not fulfill mentioned criteria.");
+      return;
+    }
+  
     try {
       setIsLoading(true);
-      await createUserWithEmailAndPassword(auth, email, password);
-      // router.push("/details");
+      await SignupUser(email, password);
+      router.push("/details");
     } catch (err) {
       alert("Signup failed: " + (err as any).message);
     } finally {
@@ -27,8 +44,8 @@ export default function Signup() {
   const handleGoogleSignup = async () => {
     try {
       setIsLoading(true);
-      await signInWithPopup(auth, googleProvider);
-      // router.push("/details");
+      await GoogleSignupUser();
+      router.push("/details");
     } catch (err) {
       alert("Google Sign-in failed: " + (err as any).message);
     } finally {
@@ -66,6 +83,15 @@ export default function Signup() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+
+            <div className="text-sm space-y-1 pl-2 pt-1">
+              <p className={`flex items-center space-x-1 ${password.length >= 6 ? "text-green-500" : "text-gray-400"}`}>
+                <span>•</span> <span>Password must be atleast 6 characters long.</span>
+              </p>
+              <p className={`flex items-center space-x-1 ${/\d/.test(password) ? "text-green-500" : "text-gray-400"}`}>
+                <span>•</span> <span>Password must contain atleast 1 number.</span>
+              </p>
             </div>
 
             <button
