@@ -66,7 +66,7 @@ export default function GoalSetupForm() {
       label: "Select your Age, Height and Weight!",
       name: "age-height-weight",
       render: () => (
-        <div className="space-y-5 w-full">
+        <div className="space-y-5 w-full mt-1">
           <div>
             <label className="block text-black font-medium text-lg mb-1">
               Age: {formData.age} years
@@ -124,13 +124,13 @@ export default function GoalSetupForm() {
       name: "dietaryGoal-goalDeadline",
       render: () => (
         <div className="flex flex-col items-center">
-          <div className="flex space-x-4 mb-4">
+          <div className="md:flex-row flex-col md:space-y-0 space-y-2 space-x-4 mb-2 items-center justify-center">
             {["Weight loss ⚖️", "Improved health 🌿", "Weight gain 💪" ].map(
               (d) => (
                 <button
                   key={d}
                   onClick={() => setFormData({ ...formData, dietaryGoal: d })}
-                  className={`px-4 py-2 w-[175px] rounded-lg border ${
+                  className={`px-4 py-2 w-full md:w-[175px] rounded-lg border ${
                     formData.dietaryGoal === d
                       ? "bg-green-500 text-white border-0"
                       : "bg-white text-gray-700 border-gray-400"
@@ -141,7 +141,7 @@ export default function GoalSetupForm() {
               )
             )}
           </div>
-          <div className="w-1/2 ">
+          <div className="w-full md:w-1/2 ">
             <input
               type="date"
               value={formData.goalDeadline}
@@ -156,16 +156,16 @@ export default function GoalSetupForm() {
     },
     {
       label:
-        "How active are you on daily basis and do you have any food restrictions/allergies or any health issues?",
+        "How active are you on daily basis and do you have any food restrictions or health issues?",
       name: "activityLevel",
       render: () => (
         <div className="flex flex-col items-center w-full">
-          <div className="flex space-x-4 mb-4">
+          <div className="md:flex-row flex-col md:space-y-0 space-y-2 space-x-4 mb-4 items-center justify-center">
             {["Lightly active 🛌", "Active 🚶", "Very Active 🏃"].map((d) => (
               <button
                 key={d}
                 onClick={() => setFormData({ ...formData, activityLevel: d })}
-                className={`px-4 py-2 w-[155px] rounded-lg border ${
+                className={`px-4 py-2 w-full md:w-[155px] rounded-lg border ${
                   formData.activityLevel === d
                     ? "bg-green-500 text-white border-0"
                     : "bg-white text-gray-700 border-gray-400"
@@ -183,7 +183,7 @@ export default function GoalSetupForm() {
             onChange={(e) =>
               setFormData({ ...formData, restrictions: e.target.value})
             }
-            className="w-5/6 border  border-gray-400 rounded-lg px-4 py-2 text-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="md:w-5/6 w-full border  border-gray-400 rounded-lg px-4 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
           />
 
           <input
@@ -193,7 +193,7 @@ export default function GoalSetupForm() {
             onChange={(e) =>
               setFormData({ ...formData, healthConditions: e.target.value })
             }
-            className="w-5/6 mt-4 border  border-gray-400 rounded-lg px-4 py-2 text-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
+            className="md:w-5/6 w-full mt-2 border  border-gray-400 rounded-lg px-4 py-2 text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
       ),
@@ -249,7 +249,7 @@ export default function GoalSetupForm() {
           </span>
         </h1>
 
-        <div className="w-3/4 bg-gray-200 rounded-full h-3 ">
+        <div className="w-full md:w-3/4 bg-gray-200 rounded-full h-3 ">
           <div
             className="bg-green-500 h-3 rounded-full transition-all"
             style={{ width: `${progress}%` }}
