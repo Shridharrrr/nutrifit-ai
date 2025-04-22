@@ -19,5 +19,5 @@ export const SigninUser = async (email: string, password: string) => {
 };
 
 export const GoogleSignupUser = async () => {
-  await signInWithPopup(auth, googleProvider);
+  return await signInWithPopup(auth, googleProvider);
 };

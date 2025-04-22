@@ -5,8 +5,10 @@ import { useState, useEffect } from "react";
 import { Cherry } from "lucide-react";
 import DisplayBMI from "@/components/CalculateBMI";
 import { saveUserData } from "@/methods/userdata";
+import { useRouter } from "next/navigation";
 
 export default function GoalSetupForm() {
+  const router = useRouter()
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState({
     uid: "",
@@ -230,6 +232,7 @@ export default function GoalSetupForm() {
     } else {
       saveUserData(formData);
       alert("Thanks! Your answers have been saved.");
+      router.push("/home")
     }
   };
   

@@ -1,9 +1,10 @@
-"use client"
+"use client";
 
 import { useState } from "react";
 import { SigninUser, GoogleSignupUser } from "@/methods/auth";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight } from "lucide-react";
+import { getAdditionalUserInfo } from "firebase/auth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -12,16 +13,15 @@ export default function Login() {
   const router = useRouter();
 
   const handleLogin = async () => {
-
     if (!email.trim() || !password.trim()) {
       alert("Please fill in both email and password.");
       return;
     }
-    
+
     try {
       setIsLoading(true);
-      await SigninUser(email,password);
-    router.push("/home"); 
+      await SigninUser(email, password);
+      router.push("/home");
     } catch (error) {
       alert("Login failed: " + (error as any).message);
     } finally {
@@ -32,10 +32,21 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
-      await GoogleSignupUser();
+      const result = await GoogleSignupUser();
+
+      const additionalInfo = getAdditionalUserInfo(result);
+      const isNewUser = additionalInfo?.isNewUser;
+
+      if (isNewUser) {
+        console.log("New user signed up:", result.user);
+        router.push("/details");
+      } else {
+        console.log("Returning user logged in:", result.user);
+      }
+
       router.push("/home");
-    } catch (error) {
-      alert("Google login failed: " + (error as any).message);
+    } catch (error: any) {
+      alert("Google login failed: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +103,9 @@ export default function Login() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-2 bg-white text-gray-500">
+                Or continue with
+              </span>
             </div>
           </div>
 
@@ -121,12 +134,17 @@ export default function Login() {
                 fill="#EA4335"
               />
             </svg>
-            <span className="text-gray-600 font-medium">Continue with Google</span>
+            <span className="text-gray-600 font-medium">
+              Continue with Google
+            </span>
           </button>
 
           <div className="text-center text-sm text-gray-500">
             Don't have an account?{" "}
-            <a href="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
+            <a
+              href="/signup"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
               Sign up
             </a>
           </div>
