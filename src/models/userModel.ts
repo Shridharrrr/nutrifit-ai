@@ -8,6 +8,6 @@ export interface UserData {
     dietaryGoal?: string
     goalDeadline?: string
     activityLevel?: string
-    restrictions?: string
-    healthConditions?: string
+    restrictions?: string[]
+    healthConditions?: string[]
 }
