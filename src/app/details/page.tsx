@@ -20,8 +20,8 @@ export default function GoalSetupForm() {
     dietaryGoal: "",
     goalDeadline: "",
     activityLevel: "",
-    restrictions: "",
-    healthConditions: "",
+    restrictions: '',
+    healthConditions: '',
   });
 
   useEffect(() => {
@@ -36,11 +36,13 @@ export default function GoalSetupForm() {
   }, []);
 
   const steps = [
+    // step 1 for gender and age
     {
       label: "What is your gender?",
       name: "gender",
       render: () => (
-        <div className="flex space-x-4">
+        <div className="flex flex-col space-x-4">
+          <div className="flex mb-7 gap-9">
           {[
             { label: "/Male.png", value: "Male" },
             { label: "/Female.png", value: "Female" },
@@ -61,14 +63,7 @@ export default function GoalSetupForm() {
               />
             </button>
           ))}
-        </div>
-      ),
-    },
-    {
-      label: "Select your Age, Height and Weight!",
-      name: "age-height-weight",
-      render: () => (
-        <div className="space-y-5 w-full">
+          </div>
           <div>
             <label className="block text-black font-medium text-lg mb-1">
               Age: {formData.age} years
@@ -84,6 +79,16 @@ export default function GoalSetupForm() {
               className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:green-800 active:accent-green-500"
             />
           </div>
+        </div>
+      ),
+    },
+    // step 2 height and weight
+    {
+      label: "Select your Height and Weight!",
+      name: "height-weight",
+      render: () => (
+        <div className="space-y-5 w-full">
+          
 
           <div>
             <label className="block text-black font-medium text-lg mb-1">
@@ -121,6 +126,7 @@ export default function GoalSetupForm() {
         </div>
       ),
     },
+    // step 3 goal and activity
     {
       label: "What is your dietary goal and your target timeline?",
       name: "dietaryGoal-goalDeadline",
@@ -153,16 +159,7 @@ export default function GoalSetupForm() {
               className="w-full border border-gray-400 text-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
             />
           </div>
-        </div>
-      ),
-    },
-    {
-      label:
-        "How active are you on daily basis and do you have any food restrictions/allergies or any health issues?",
-      name: "activityLevel",
-      render: () => (
-        <div className="flex flex-col items-center w-full">
-          <div className="flex space-x-4 mb-4">
+          <div className="flex space-x-4 m-4">
             {["Lightly active 🛌", "Active 🚶", "Very Active 🏃"].map((d) => (
               <button
                 key={d}
@@ -177,7 +174,16 @@ export default function GoalSetupForm() {
               </button>
             ))}
           </div>
-
+        </div>
+      ),
+    },
+    // step 4 allergy and issues
+    {
+      label:
+        "any food restrictions/allergies or any health issues?",
+      name: "activityLevel",
+      render: () => (
+        <div className="flex flex-col items-center w-full">
           <input
             type="text"
             placeholder="Any food restrictions or allergies?"
