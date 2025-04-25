@@ -6,10 +6,11 @@ import { Cherry } from "lucide-react";
 import DisplayBMI from "@/components/CalculateBMI";
 import { saveUserData } from "@/methods/userdata";
 import BmrCalculator from "@/components/ActivityProps";
+import { UserData } from "@/models/userModel";
 
 export default function GoalSetupForm() {
   const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserData>({
     uid: "",
     email: "",
     gender: "",
@@ -17,10 +18,9 @@ export default function GoalSetupForm() {
     height: 170,
     weight: 60,
     dietaryGoal: "",
-    goalDeadline: "",
     activityLevel: "",
-    restrictions: [],
-    healthConditions: [],
+    restrictions: ["None"],
+    healthConditions: ["None"],
   });
 
   useEffect(() => {
@@ -36,10 +36,10 @@ export default function GoalSetupForm() {
 
   const steps = [
     {
-      label: "Select your Gender and Age?",
+      label: "Select your Gender and Age!",
       name: "gender-age",
       render: () => (
-        <div className="flex-col flex w-full md:w-5/6">
+        <div className="flex flex-col w-full space-y-6 ">
           <div className="flex space-x-4 items-center justify-center">
             {[
               { label: "/Male.png", value: "Male" },
@@ -48,23 +48,27 @@ export default function GoalSetupForm() {
               <button
                 key={g.value}
                 onClick={() => setFormData({ ...formData, gender: g.value })}
-                className={`w-35 h-35 px-4 py-2 overflow-hidden rounded-lg border-2 text-lg font-medium flex items-center justify-center mb-5 ${
+                className={`flex justify-center w-32 h-32 p-2 overflow-hidden rounded-xl border-2 transition-all ${
                   formData.gender === g.value
-                    ? "border-green-500 bg-green-50"
-                    : "bg-white border-gray-400"
+                    ? "border-green-500 bg-green-50 scale-105 shadow-md"
+                    : "bg-white border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <img
                   src={g.label}
                   alt={g.value}
-                  className="w-20 bg-center object-cover "
+                  className="w-20 h-full object-center object-contain"
                 />
               </button>
             ))}
           </div>
-            <label className="block text-black font-medium text-lg mb-2 ml-1">
-              Age: {formData.age} years
-            </label>
+          
+          <div className="space-y-1 md:space-y-2">
+            <div className="flex justify-between items-center">
+            <label className="block text-gray-700 font-medium text-lg">
+                  Age : <span className="text-blue-600 font-semibold">{formData.age} years</span> 
+                </label>
+            </div>
             <input
               type="range"
               min={10}
@@ -73,112 +77,199 @@ export default function GoalSetupForm() {
               onChange={(e) =>
                 setFormData({ ...formData, age: Number(e.target.value) })
               }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:green-800 active:accent-green-500"
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-600"
             />
+          </div>
+          
+          {step==0 && (
+            <p className="text-sm text-center text-gray-500">
+              We use your gender to design the best diet plan for you. If you
+              don't identify with these options, please select the gender closest
+              to your hormonal profile.
+            </p>
+          )}
         </div>
       ),
     },
     {
-      label: "Select your Height and Weight!",
+      label: "Enter your Height and Weight!",
       name: "height-weight",
       render: () => (
-        <div className="flex flex-col items-center overflow-auto">
-        <div className="space-y-5 w-full md:w-5/6">
-          <div>
-            <label className="block text-gray-800 font-medium text-lg ml-1 mt-2">
-              Height: {formData.height} cm
-            </label>
-            <input
-              type="range"
-              min={100}
-              max={220}
-              value={formData.height}
-              onChange={(e) =>
-                setFormData({ ...formData, height: Number(e.target.value) })
-              }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:green-800 active:accent-green-500"
-            />
-          </div>
+        <div className="flex flex-col items-center w-full space-y-6">
+          <div className="space-y-6 w-full">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-gray-700 font-medium text-lg">
+                  Height : <span className="text-blue-600 font-semibold">{formData.height} cm</span> 
+                </label>
+              </div>
+              <input
+                type="range"
+                min={100}
+                max={220}
+                value={formData.height}
+                onChange={(e) =>
+                  setFormData({ ...formData, height: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-600"
+              />
+            </div>
 
-          <div>
-            <label className="block text-gray-800 font-medium text-lg ml-1">
-              Weight: {formData.weight} kg
-            </label>
-            <input
-              type="range"
-              min={30}
-              max={150}
-              value={formData.weight}
-              onChange={(e) =>
-                setFormData({ ...formData, weight: Number(e.target.value) })
-              }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:green-800 active:accent-green-500 mb-6"
-            />
-
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-gray-700 font-medium text-lg">
+                  Weight : <span className="text-blue-600 font-semibold">{formData.weight} kg</span> 
+                </label>
+              </div>
+              <input
+                type="range"
+                min={30}
+                max={150}
+                value={formData.weight}
+                onChange={(e) =>
+                  setFormData({ ...formData, weight: Number(e.target.value) })
+                }
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-green-500 hover:accent-green-600"
+              />
+            </div>
           </div>
-        </div>
-        <DisplayBMI height={formData.height} weight={formData.weight} />
+          
+          <DisplayBMI 
+            height={formData.height} 
+            weight={formData.weight} 
+          />
         </div>
       ),
     },
     {
-      label: "What is your Dietary Goal?",
+      label: "What is your Health Goal?",
       name: "dietaryGoal-activitylevel",
       render: () => (
-        <div className="flex flex-col items-center w-full">
-          <div className="md:flex-row flex-col md:space-y-0 space-y-2 space-x-2 mb-2 items-center justify-center">
-            {["Weight loss⚖️", "Improved health🌿", "Weight gain💪"].map(
-              (d) => (
+        <div className="flex flex-col items-center w-full space-y-5">
+          <div className="w-full space-y-2">
+            <h3 className="text-lg font-medium text-gray-700">Dietary Goal</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                { label: "Weight loss", emoji: "⚖️", value: "Weight loss⚖️" },
+                { label: "Improved health", emoji: "🌿", value: "Improved health🌿" },
+                { label: "Weight gain", emoji: "💪", value: "Weight gain💪" },
+              ].map((d) => (
                 <button
-                  key={d}
-                  onClick={() => setFormData({ ...formData, dietaryGoal: d })}
-                  className={`py-2 w-full md:w-[185px] rounded-lg border ${
-                    formData.dietaryGoal === d
-                      ? "bg-green-500 text-white border-0"
-                      : "bg-white text-gray-700 border-gray-400"
+                  key={d.value}
+                  onClick={() => setFormData({ ...formData, dietaryGoal: d.value })}
+                  className={`py-3 px-4 rounded-xl border transition-all flex flex-col items-center ${
+                    formData.dietaryGoal === d.value
+                      ? "bg-green-500 text-white border-green-500 shadow-md"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
                   }`}
                 >
-                  {d}
+                  <span>{d.label}{d.emoji}</span>
                 </button>
-              )
-            )}
+              ))}
+            </div>
           </div>
-          <h3 className="text-2xl font-medium text-center mb-3 mt-4">How Active are you on daily basis?</h3>
-          <div className="md:flex-row flex-col md:space-y-0 space-y-2 space-x-2 mb-5 items-center justify-center">
-            {["Lightly Active💤", "Moderately Active🚶", "Very Active🏃"].map((d) => (
-              <button
-                key={d}
-                onClick={() => setFormData({ ...formData, activityLevel: d })}
-                className={`py-2 w-full md:w-[185px] rounded-lg border ${
-                  formData.activityLevel === d
-                    ? "bg-green-500 text-white border-0"
-                    : "bg-white text-gray-700 border-gray-400"
-                }`}
-              >
-                {d}
-              </button>
-            ))}
+          
+          <div className="w-full space-y-2">
+            <h3 className="text-lg font-medium text-gray-700">Activity Level</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                { label: "Lightly Active", emoji: "💤", value: "Lightly Active💤" },
+                { label: "Moderately Active", emoji: "🚶", value: "Moderately Active🚶" },
+                { label: "Very Active", emoji: "🏃", value: "Very Active🏃" },
+              ].map((d) => (
+                <button
+                  key={d.value}
+                  onClick={() => setFormData({ ...formData, activityLevel: d.value })}
+                  className={`py-3 px-4 rounded-xl border transition-all flex flex-col items-center ${
+                    formData.activityLevel === d.value
+                      ? "bg-green-500 text-white border-green-500 shadow-md"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
+                  }`}
+                >
+                  <span>{d.label}{d.emoji}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <BmrCalculator age={formData.age} gender={formData.gender} height={formData.height} weight={formData.weight} activityLevel={formData.activityLevel}/>
+          
+          <BmrCalculator 
+            age={formData.age} 
+            gender={formData.gender} 
+            height={formData.height} 
+            weight={formData.weight} 
+            activityLevel={formData.activityLevel}
+          />
         </div>
       ),
     },
     {
-      label:
-        "Do you have any Food Restrictions or Health Issues?",
-      name: "activityLevel",
+      label: "Any Food-Restrictions or Health issues?",
+      name: "restrictions-conditions",
       render: () => (
-        <div className="flex flex-col items-center w-full">
-          <div className="flex items-center justify-between text-black text-2xl">
-              <div>
-              <span>Food Restrictions :</span>
-              </div>
-              <div>
-              <span>Health Issues :</span>
-              </div>
-          </div>
+        <div className="flex flex-col items-center w-full space-y-8">
+          <div className="w-full space-y-2">
+            <h3 className="text-lg font-medium text-gray-700">Food Restrictions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Kosher", "Halal", "Pescatarian", "Nut-free"].map((restriction) => (
+                <button
+                  key={restriction}
+                  onClick={() => {
 
-        
+                    let newRestrictions;
+                    if (formData.restrictions.includes(restriction)) {
+                    newRestrictions = formData.restrictions.filter(r => r !== restriction);
+                    } else {
+                    newRestrictions = [...formData.restrictions.filter(r => r !== "None"), restriction];
+                    }
+                    if (newRestrictions.length === 0) {
+                    newRestrictions = ["None"];
+                    }   
+                    setFormData({ ...formData, restrictions: newRestrictions });
+                  }}
+
+                  className={`py-2 px-3 rounded-lg border transition-all text-sm ${
+                    formData.restrictions.includes(restriction)
+                      ? "bg-green-500 text-white border-green-500"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
+                  }`}
+                >
+                  {restriction}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div className="w-full space-y-2">
+            <h3 className="text-lg font-medium text-gray-700">Health Conditions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {["Diabetes", "Hypertension", "Heart Disease", "PCOS", "Thyroid", "IBS", "Celiac", "Cholesterol"].map((condition) => (
+                <button
+                  key={condition}
+                  onClick={() => {
+
+                    let newConditions;
+                    if (formData.healthConditions.includes(condition)) {
+                      newConditions = formData.healthConditions.filter(c => c !== condition);
+                    } else {
+                      newConditions = [...formData.healthConditions.filter(c => c !== "None"), condition];
+                    }
+                    if (newConditions.length === 0) {
+                      newConditions = ["None"];
+                    }
+                    setFormData({ ...formData, healthConditions: newConditions });
+                  }}
+
+                  className={`py-2 px-3 rounded-lg border transition-all text-sm ${
+                    formData.healthConditions.includes(condition)
+                      ? "bg-green-500 text-white border-green-500"
+                      : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
+                  }`}
+                >
+                  {condition}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       ),
     },
@@ -198,10 +289,10 @@ export default function GoalSetupForm() {
         alert("Please select your dietary goal.");
         return;
       }
-    }
-    if (step === 3 && !formData.activityLevel) {
-      alert("Please select your activity level.");
-      return;
+      if (!formData.activityLevel) {
+        alert("Please select your activity level.");
+        return;
+      }
     }
 
     if (step < totalSteps - 1) {
@@ -209,6 +300,7 @@ export default function GoalSetupForm() {
     } else {
       saveUserData(formData);
       alert("Thanks! Your answers have been saved.");
+      // Optionally redirect or close the form
     }
   };
 
@@ -217,61 +309,63 @@ export default function GoalSetupForm() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100 p-4">
-  <div className="bg-white p-8 rounded-xl shadow-lg h-auto md:h-[550px] w-full max-w-2xl flex flex-col">
-    
-    {/* Top content */}
-    <div className="flex flex-col items-center justify-start space-y-5 overflow-auto">
-      <h1 className="text-3xl text-center flex items-center">
-        <span className="text-gray-800 font-medium">Nutrifit</span>
-        <span className="text-green-500 font-semibold">AI</span>
-        <span className="text-green-500 font-semibold">
-          <Cherry strokeWidth={2} />
-        </span>
-      </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 to-green-600 p-4">
+      <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl h-auto max-h-[90vh] w-full max-w-2xl flex flex-col">
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="flex items-center justify-center text-3xl font-bold text-center">
+            <span className="text-gray-800">Nutri</span>
+            <span className="text-green-500">Fit</span>
+            <span className="text-green-500">
+              <Cherry strokeWidth={2.5} size={30} />
+            </span>
+          </h1>
+        </div>
 
-      <div className="w-full md:w-3/4 bg-gray-200 rounded-full h-3">
-        <div
-          className="bg-green-500 h-3 rounded-full transition-all"
-          style={{ width: `${progress}%` }}
-        ></div>
+        {/* Progress bar */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium text-black">
+              Step {step + 1} of {totalSteps}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className="bg-green-500 h-2.5 rounded-full transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Current step content */}
+        <div className="flex-grow overflow-y-auto px-2 py-4">
+          <h2 className="text-xl md:text-2xl font-semibold text-center text-gray-800 mb-5">
+            {currentStep.label}
+          </h2>
+          {currentStep.render()}
+        </div>
+
+        {/* Navigation buttons */}
+        <div className="flex justify-between space-x-4 w-full mt-6 pt-4 border-t border-gray-200">
+          <button
+            onClick={handleBack}
+            disabled={step === 0}
+            className={`w-full py-3 rounded-lg font-semibold transition ${
+              step === 0
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Back
+          </button>
+          <button
+            onClick={handleNext}
+            className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition shadow-md hover:shadow-lg"
+          >
+            {step === totalSteps - 1 ? "Finish Setup" : "Continue"}
+          </button>
+        </div>
       </div>
-
-      <label className="block text-black text-2xl font-medium text-center mb-3 mt-3">
-        {currentStep.label}
-      </label>
-      {currentStep.render()}
-
-      {step === 0 && (
-        <span className="text-xs font-medium text-center text-gray-500 block md:mt-2">
-          We use your gender to design the best diet plan for you. If you
-          don't identify yourself as any of these options, please select the
-          gender closest to your hormonal profile.
-        </span>
-      )}
     </div>
-
-    <div className="flex justify-between space-x-4 w-full mt-auto pt-4">
-      <button
-        onClick={handleBack}
-        disabled={step === 0}
-        className={`w-full py-3 rounded-lg font-semibold transition ${
-          step === 0
-            ? "bg-gray-300 text-gray-500"
-            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-        }`}
-      >
-        Back
-      </button>
-      <button
-        onClick={handleNext}
-        className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition"
-      >
-        {step === totalSteps - 1 ? "Finish" : "Next"}
-      </button>
-    </div>
-  </div>
-</div>
-
   );
 }

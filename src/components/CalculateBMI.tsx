@@ -36,19 +36,19 @@ const DisplayBMI: React.FC<DisplayBMIProps> = ({ height, weight }) => {
   const category = bmi !== null ? getBMICategory(bmi) : null;
 
   return (
-    <div className="ml-1 text-center text-xl font-medium text-gray-700">
+    <div className="w-full text-center text-lg font-medium text-gray-700">
       {bmi !== null && (
         <>
           Your Body Mass Index(BMI) is{" "}
           <span className="text-blue-600 font-semibold">
             {bmiStr}
           </span>{" "}
-          and you fall in
+          :
           <span className="text-green-600 font-semibold"> {category} </span>
           Category!
         </>
       )}
-      <div className="flex justify-start text-lg font-medium text-blue-700 mt-5 hover:text-blue-900">
+      <div className="flex justify-start text-base font-medium text-blue-700 mt-5 hover:text-blue-900">
         <AlertDialog>
           <AlertDialogTrigger>BMI ⓘ</AlertDialogTrigger>
           <AlertDialogContent>
@@ -63,7 +63,6 @@ const DisplayBMI: React.FC<DisplayBMIProps> = ({ height, weight }) => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction>Continue</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
