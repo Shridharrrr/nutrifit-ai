@@ -188,7 +188,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-green-500 text-white pt-10 overflow-hidden">
+      <section className="relative bg-linear-to-r from-green-600 via-lime-500 to-green-600 text-white pt-10 overflow-hidden">
       
       <div className="container mx-auto px-4 text-center relative z-10">
         <motion.div
@@ -214,8 +214,8 @@ export default function LandingPage() {
             onClick={() => {router.push("/login")}}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            initial={{ y: -10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             className="bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-gray-100 transition shadow-lg"
           >
             Start Your Plan Now
