@@ -2,7 +2,7 @@
 
 import { auth } from "@/config/firebase";
 import { useState, useEffect } from "react";
-import { Cherry } from "lucide-react";
+import { Cherry,ThumbsUpIcon } from "lucide-react";
 import DisplayBMI from "@/components/CalculateBMI";
 import { saveUserData } from "@/methods/userdata";
 import BmrCalculator from "@/components/ActivityProps";
@@ -227,12 +227,13 @@ export default function GoalSetupForm() {
                     setFormData({ ...formData, restrictions: newRestrictions });
                   }}
 
-                  className={`py-2 px-3 rounded-lg border transition-all text-sm ${
+                  className={`py-2 px-3 rounded-lg border transition-all flex gap-4 text-sm ${
                     formData.restrictions.includes(restriction)
                       ? "bg-green-500 text-white border-green-500"
                       : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
                   }`}
                 >
+                  <ThumbsUpIcon/>
                   {restriction}
                 </button>
               ))}
@@ -360,7 +361,7 @@ export default function GoalSetupForm() {
           </button>
           <button
             onClick={handleNext}
-            className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition shadow-md hover:shadow-lg"
+            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition shadow-md hover:shadow-lg"
           >
             {step === totalSteps - 1 ? "Finish Setup" : "Continue"}
           </button>
