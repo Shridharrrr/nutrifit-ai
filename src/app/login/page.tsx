@@ -42,9 +42,8 @@ export default function Login() {
         router.push("/details");
       } else {
         console.log("Returning user logged in:", result.user);
+        router.push("/home");
       }
-
-      router.push("/home");
     } catch (error: any) {
       alert("Google login failed: " + error.message);
     } finally {

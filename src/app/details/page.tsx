@@ -48,7 +48,7 @@ export default function GoalSetupForm() {
               <button
                 key={g.value}
                 onClick={() => setFormData({ ...formData, gender: g.value })}
-                className={`flex justify-center w-32 h-32 p-2 overflow-hidden rounded-xl border-2 transition-all ${
+                className={`flex justify-center cursor-pointer w-32 h-32 p-2 overflow-hidden rounded-xl border-2 transition-all ${
                   formData.gender === g.value
                     ? "border-green-500 bg-green-50 scale-105 shadow-md"
                     : "bg-white border-gray-200 hover:border-gray-300"
@@ -310,13 +310,13 @@ export default function GoalSetupForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-400 to-green-600 p-4">
+    <div className="min-h-screen flex items-center justify-center  bg-green-500 p-4">
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl h-auto max-h-[90vh] w-full max-w-2xl flex flex-col">
         {/* Header */}
         <div className="mb-4">
           <h1 className="flex items-center justify-center text-3xl font-bold text-center">
-            <span className="text-gray-800">Nutri</span>
-            <span className="text-green-500">Fit</span>
+            <span className="text-gray-800">NutriFit</span>
+            <span className="text-green-500">AI</span>
             <span className="text-green-500">
               <Cherry strokeWidth={2.5} size={30} />
             </span>
