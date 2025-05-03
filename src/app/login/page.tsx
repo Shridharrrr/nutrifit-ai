@@ -21,7 +21,7 @@ export default function Login() {
     try {
       setIsLoading(true);
       await SigninUser(email, password);
-      router.push("/home");
+      router.push("/my-meal");
     } catch (error) {
       alert("Login failed: " + (error as any).message);
     } finally {
@@ -42,7 +42,7 @@ export default function Login() {
         router.push("/details");
       } else {
         console.log("Returning user logged in:", result.user);
-        router.push("/home");
+        router.push("/my-meal");
       }
     } catch (error: any) {
       alert("Google login failed: " + error.message);
