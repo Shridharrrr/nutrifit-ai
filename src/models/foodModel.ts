@@ -6,13 +6,12 @@ export interface foodItem {
     readyInMinutes: number
     servings: number
     healthScore: number
-    nutrition: {
+    period : string
       nutrients: {
         name: string
         amount: number
         unit: string
       }[]
-    }
     sourceUrl: string
   }
   

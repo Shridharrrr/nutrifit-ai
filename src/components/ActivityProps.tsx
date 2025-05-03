@@ -1,4 +1,4 @@
-import React from "react";
+import React,{useEffect} from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +17,7 @@ type BmrCalculatorProps = {
   height: number; // in cm
   weight: number; // in kg
   activityLevel: string;
+  onTdeeChange?: (tdee: number) => void;
 };
 
 const activityLevels = [
@@ -31,6 +32,7 @@ const BmrCalculator: React.FC<BmrCalculatorProps> = ({
   height,
   weight,
   activityLevel,
+  onTdeeChange,
 }) => {
   // Find numerical value for the given activity level
   const activityFactor =
@@ -44,7 +46,11 @@ const BmrCalculator: React.FC<BmrCalculatorProps> = ({
   };
 
   const bmr = calculateBMR();
-  const tdee = bmr * activityFactor;
+  const tdee = Math.round(bmr * activityFactor);
+
+  useEffect(() => {
+    onTdeeChange?.(tdee);
+  }, [tdee]);
 
   return (
     <div className="w-full text-lg font-medium text-gray-700">

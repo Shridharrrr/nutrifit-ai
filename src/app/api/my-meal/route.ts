@@ -11,7 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Check if a diet entry already exists for today
+    const apiKey = process.env.SPOONACULAR_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Missing Spoonacular API key" }, { status: 500 });
+    }
+
     const userRef = doc(db, "users", uid);
     const userDoc = await getDoc(userRef);
 
@@ -21,15 +25,16 @@ export async function POST(req: NextRequest) {
 
     const userData = userDoc.data();
     const diet = userData?.diet || [];
+    const today = new Date().toISOString().split("T")[0];
 
-    const today = new Date().toISOString().split("T")[0]; 
-    const isMealCreatedToday = diet.some((mealEntry: any) => mealEntry.createdAt?.startsWith(today));
+    const isMealCreatedToday = diet.some(
+      (mealEntry: any) => mealEntry.createdAt?.startsWith(today)
+    );
 
     if (isMealCreatedToday) {
-      return NextResponse.json({ message: "Meals already created today. No more meals can be added." }, { status: 400 });
+      return NextResponse.json({ message: "Meals already created today." }, { status: 400 });
     }
 
-    const apiKey = process.env.SPOONACULAR_API_KEY;
     const caloriePerMeal = Math.floor(calories / 3);
     const mealTypes = ["breakfast", "lunch", "dinner"];
 
@@ -39,15 +44,24 @@ export async function POST(req: NextRequest) {
           type,
           intolerances,
           number: 1,
-          maxCalories: caloriePerMeal,
+          maxCalories: caloriePerMeal + Math.floor(Math.random() * 50), // slight variation
           addRecipeInformation: true,
           addRecipeNutrition: true,
+          sort: "random", 
           apiKey,
         },
       })
     );
+    
 
     const mealResponses = await Promise.all(mealPromises);
+
+    const getFirstMeal = (res: any, type: string) => {
+      if (!res?.data?.results?.length) {
+        throw new Error(`No ${type} meal found`);
+      }
+      return res.data.results[0];
+    };
 
     const extractMealData = (meal: any) => {
       const nutrients = meal.nutrition?.nutrients || [];
@@ -71,12 +85,11 @@ export async function POST(req: NextRequest) {
     };
 
     const meals = {
-      breakfast: extractMealData(mealResponses[0].data.results[0]),
-      lunch: extractMealData(mealResponses[1].data.results[0]),
-      dinner: extractMealData(mealResponses[2].data.results[0]),
+      breakfast: extractMealData(getFirstMeal(mealResponses[0], "breakfast")),
+      lunch: extractMealData(getFirstMeal(mealResponses[1], "lunch")),
+      dinner: extractMealData(getFirstMeal(mealResponses[2], "dinner")),
     };
 
-    // Save meals to Firestore under diet array
     await updateDoc(userRef, {
       diet: arrayUnion({
         createdAt: new Date().toISOString(),

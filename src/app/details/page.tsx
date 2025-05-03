@@ -7,8 +7,10 @@ import DisplayBMI from "@/components/CalculateBMI";
 import { saveUserData } from "@/methods/userdata";
 import BmrCalculator from "@/components/ActivityProps";
 import { UserData } from "@/models/userModel";
+import { useRouter } from "next/navigation";
 
 export default function GoalSetupForm() {
+  const router = useRouter()
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState<UserData>({
     uid: "",
@@ -21,6 +23,7 @@ export default function GoalSetupForm() {
     activityLevel: "",
     restrictions: ["None"],
     healthConditions: ["None"],
+    tdee : 0,
   });
 
   useEffect(() => {
@@ -33,6 +36,10 @@ export default function GoalSetupForm() {
       }));
     }
   }, []);
+
+  const handleTdeeChange = (value: number) => {
+    setFormData((prev) => ({ ...prev, tdee: value }));
+  };
 
   const steps = [
     {
@@ -198,6 +205,7 @@ export default function GoalSetupForm() {
             height={formData.height} 
             weight={formData.weight} 
             activityLevel={formData.activityLevel}
+            onTdeeChange={handleTdeeChange}
           />
         </div>
       ),
@@ -301,7 +309,7 @@ export default function GoalSetupForm() {
     } else {
       saveUserData(formData);
       alert("Thanks! Your answers have been saved.");
-      // Optionally redirect or close the form
+      router.push("/my-meal")
     }
   };
 

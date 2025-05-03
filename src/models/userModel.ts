@@ -9,4 +9,5 @@ export interface UserData {
     activityLevel: string;
     restrictions: string[];
     healthConditions: string[];
+    tdee : number
 }

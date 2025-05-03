@@ -1,6 +1,6 @@
-"use client"
-import { useEffect, useState } from "react"
-import { AppSidebar } from "@/components/app-sidebar"
+"use client";
+import { useEffect, useState } from "react";
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,76 +8,107 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import MealBlock from "@/components/mealBlock"
-import { Button } from "@/components/ui/button"
-import axios from "axios"
-import { auth } from "@/config/firebase"
-import { doc, getDoc } from "firebase/firestore"
-import { db } from "@/config/firebase"
-import { foodItem } from "@/models/foodModel"
+} from "@/components/ui/sidebar";
+import MealBlock from "@/components/mealBlock";
+import { Button } from "@/components/ui/button";
+import axios from "axios";
+import { auth } from "@/config/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/config/firebase";
+import { foodItem } from "@/models/foodModel";
 
 export default function Page() {
-  const [mealToday, setMealToday] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [meals, setMeals] = useState<foodItem[]>([])
+  const [mealToday, setMealToday] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [meals, setMeals] = useState<foodItem[]>([]);
 
   useEffect(() => {
     const checkMealToday = async () => {
-      const uid = auth.currentUser?.uid
-      if (!uid) return
+      try {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
 
-      const userRef = doc(db, "users", uid)
-      const userSnap = await getDoc(userRef)
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
 
-      if (userSnap.exists()) {
-        const data = userSnap.data()
-        const diet = data.diet || []
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const diet = data.diet || [];
 
-        const today = new Date().toISOString().split("T")[0]
-        const todayMeal = diet.find((entry: any) =>
-          entry.createdAt.startsWith(today)
-        )
+          const today = new Date().toISOString().split("T")[0];
+          const todayMeal = diet.find((entry: any) =>
+            entry.createdAt.startsWith(today)
+          );
 
-        if (todayMeal) {
-          setMealToday(true)
-          setMeals([
-            todayMeal.meals.breakfast,
-            todayMeal.meals.lunch,
-            todayMeal.meals.dinner,
-          ])
+          if (todayMeal) {
+            setMealToday(true);
+            setMeals([
+              { ...todayMeal.meals.breakfast, period: "Breakfast" },
+              { ...todayMeal.meals.lunch, period: "Lunch" },
+              { ...todayMeal.meals.dinner, period: "Dinner" },
+            ]);
+          }
         }
+      } catch (err) {
+        console.error("Error checking meals:", err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false)
-    }
-
-    checkMealToday()
-  }, [])
+    checkMealToday();
+  }, []);
 
   const handleCreate = async () => {
-    try {
-      const res = await axios.post("/api/my-meal", {
-        uid: auth.currentUser?.uid,
-        calories: 2000,
-        intolerances: "gluten,dairy",
-      })
-
-      console.log("Meal generated:", res.data)
-      setMealToday(true)
-      const { breakfast, lunch, dinner } = res.data.meals
-      setMeals([breakfast, lunch, dinner])
-    } catch (error: any) {
-      const data = error.response?.data
-      console.log(data?.message || "Error creating meal")
+    const uid = auth.currentUser?.uid;
+    if (!uid) {
+      console.error("User not authenticated.");
+      return;
     }
-  }
+
+    try {
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+      let intol = "";
+
+      if (userSnap.exists()) {
+        const data = userSnap.data();
+        const restrictions = data.restrictions;
+        const calories = data.tdee;
+
+        if(restrictions[0] == "None"){
+          intol = "";
+        }
+        else intol = restrictions.join(",");
+
+        const res = await axios.post("/api/my-meal", {
+          uid,
+          calories,
+          intolerances: intol,
+        });
+
+        console.log("Meal generated:", res.data);
+      setMealToday(true);
+
+      const { breakfast, lunch, dinner } = res.data.meals;
+
+      setMeals([
+        { ...breakfast, period: "Breakfast" },
+        { ...lunch, period: "Lunch" },
+        { ...dinner, period: "Dinner" },
+      ]);
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Error creating meal";
+      console.error("Meal creation failed:", message);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -108,12 +139,14 @@ export default function Page() {
           {loading ? (
             <p>Loading...</p>
           ) : mealToday ? (
-            meals.map((m:foodItem,i: number) => <MealBlock key={i} meal={m} />)
+            meals.map((m: foodItem, i: number) => (
+              <MealBlock key={i} meal={m} />
+            ))
           ) : (
             <p>No meal created yet. Click "Generate Meal" to create one.</p>
           )}
         </div>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }
