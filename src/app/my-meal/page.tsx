@@ -19,7 +19,7 @@ import MealBlock from "@/components/mealBlock";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
 import { auth } from "@/config/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { foodItem } from "@/models/foodModel";
 
@@ -29,40 +29,65 @@ export default function Page() {
   const [meals, setMeals] = useState<foodItem[]>([]);
 
   useEffect(() => {
-    const checkMealToday = async () => {
-      try {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
-
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          const diet = data.diet || [];
-
-          const today = new Date().toISOString().split("T")[0];
-          const todayMeal = diet.find((entry: any) =>
-            entry.createdAt.startsWith(today)
-          );
-
-          if (todayMeal) {
-            setMealToday(true);
-            setMeals([
-              { ...todayMeal.meals.breakfast, period: "Breakfast" },
-              { ...todayMeal.meals.lunch, period: "Lunch" },
-              { ...todayMeal.meals.dinner, period: "Dinner" },
-            ]);
-          }
-        }
-      } catch (err) {
-        console.error("Error checking meals:", err);
-      } finally {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        checkMealToday(user.uid);
+      } else {
         setLoading(false);
       }
-    };
+    });
 
-    checkMealToday();
+    return () => unsubscribe();
+  }, []);
+
+  const checkMealToday = async (uid: string) => {
+    try {
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+      // ... rest of your existing checkMealToday logic
+    } catch (err) {
+      console.error("Error checking meals:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const today = new Date().toLocaleDateString("en-CA");
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (userSnap.exists()) {
+            const diet = userSnap.data().diet || [];
+            const todayMeal = diet.find(
+              (entry: any) =>
+                new Date(entry.createdAt).toLocaleDateString("en-CA") === today
+            );
+
+            if (todayMeal) {
+              setMealToday(true);
+              const todayMeals = [
+                { ...todayMeal.meals.breakfast, period: "Breakfast" },
+                { ...todayMeal.meals.lunch, period: "Lunch" },
+                { ...todayMeal.meals.dinner, period: "Dinner" },
+              ];
+              setMeals(todayMeals);
+              localStorage.setItem("todayMeals", JSON.stringify(todayMeals));
+            }
+          }
+        } catch (err) {
+          console.error("Error:", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleCreate = async () => {
@@ -82,10 +107,11 @@ export default function Page() {
         const restrictions = data.restrictions;
         const calories = data.tdee;
 
-        if(restrictions[0] == "None"){
+        if (restrictions[0] === "None") {
           intol = "";
+        } else {
+          intol = restrictions.join(",");
         }
-        else intol = restrictions.join(",");
 
         const res = await axios.post("/api/my-meal", {
           uid,
@@ -94,15 +120,24 @@ export default function Page() {
         });
 
         console.log("Meal generated:", res.data);
-      setMealToday(true);
+        const { breakfast, lunch, dinner } = res.data.meals;
+        const today = new Date().toLocaleDateString('en-CA'); // More reliable format
 
-      const { breakfast, lunch, dinner } = res.data.meals;
+        setMealToday(true);
+        console.log(today);
 
-      setMeals([
-        { ...breakfast, period: "Breakfast" },
-        { ...lunch, period: "Lunch" },
-        { ...dinner, period: "Dinner" },
-      ]);
+        await updateDoc(userRef, {
+          diet: arrayUnion({
+            createdAt: today,
+            meals: { breakfast, lunch, dinner },
+          }),
+        });
+
+        setMeals([
+          { ...breakfast, period: "Breakfast" },
+          { ...lunch, period: "Lunch" },
+          { ...dinner, period: "Dinner" },
+        ]);
       }
     } catch (error: any) {
       const message = error.response?.data?.error || "Error creating meal";
@@ -137,7 +172,14 @@ export default function Page() {
 
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           {loading ? (
-            <p>Loading...</p>
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="h-32 bg-gray-100 rounded-xl animate-pulse"
+                ></div>
+              ))}
+            </div>
           ) : mealToday ? (
             meals.map((m: foodItem, i: number) => (
               <MealBlock key={i} meal={m} />

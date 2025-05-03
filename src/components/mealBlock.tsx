@@ -61,7 +61,7 @@ export default function MealBlock({ meal }: Props) {
       </div>
 
       {/* Right: Nutrients */}
-      <div className="grid grid-rows-4 gap-2 w-1/5 text-sm">
+      <div className="grid grid-rows-4 gap-4 w-1/5 text-sm">
         {[
           {
             label: "Calories",
