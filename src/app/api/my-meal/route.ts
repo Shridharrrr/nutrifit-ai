@@ -8,12 +8,18 @@ export async function POST(req: NextRequest) {
     const { uid, calories, intolerances } = await req.json();
 
     if (!uid || !calories) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "Missing Spoonacular API key" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Missing Spoonacular API key" },
+        { status: 500 }
+      );
     }
 
     const userRef = doc(db, "users", uid);
@@ -27,12 +33,15 @@ export async function POST(req: NextRequest) {
     const diet = userData?.diet || [];
     const today = new Date().toISOString().split("T")[0];
 
-    const isMealCreatedToday = diet.some(
-      (mealEntry: any) => mealEntry.createdAt?.startsWith(today)
+    const isMealCreatedToday = diet.some((mealEntry: any) =>
+      mealEntry.createdAt?.startsWith(today)
     );
 
     if (isMealCreatedToday) {
-      return NextResponse.json({ message: "Meals already created today." }, { status: 400 });
+      return NextResponse.json(
+        { message: "Meals already created today." },
+        { status: 400 }
+      );
     }
 
     const caloriePerMeal = Math.floor(calories / 3);
@@ -44,15 +53,14 @@ export async function POST(req: NextRequest) {
           type,
           intolerances,
           number: 1,
-          maxCalories: caloriePerMeal + Math.floor(Math.random() * 50), // slight variation
+          minCalories: caloriePerMeal, // slight variation
           addRecipeInformation: true,
           addRecipeNutrition: true,
-          sort: "random", 
+          sort: "random",
           apiKey,
         },
       })
     );
-    
 
     const mealResponses = await Promise.all(mealPromises);
 
@@ -97,9 +105,15 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    return NextResponse.json({ message: "Meals saved", meals }, { status: 200 });
+    return NextResponse.json(
+      { message: "Meals saved", meals },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Error generating meals:", error.message);
-    return NextResponse.json({ error: "Failed to generate meals" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate meals" },
+      { status: 500 }
+    );
   }
 }

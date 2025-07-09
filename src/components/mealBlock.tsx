@@ -1,6 +1,6 @@
 import { foodItem } from "@/models/foodModel";
 import React from "react";
-import { Timer,Heart } from "lucide-react";
+import { Timer, Heart } from "lucide-react";
 
 interface Props {
   meal: foodItem;
@@ -10,9 +10,9 @@ export default function MealBlock({ meal }: Props) {
   console.log(meal);
 
   return (
-    <div className="bg-white hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-in-out rounded-xl p-4 flex items-center justify-between w-full max-w-4xl mx-auto gap-4 border">
+    <div className="bg-white hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-in-out rounded-xl p-4 flex flex-col md:flex-row items-stretch justify-between w-full max-w-4xl mx-auto gap-4 border">
       {/* Left: Image */}
-      <div className="w-1/3 h-full">
+      <div className="w-full md:w-1/3 h-48 md:h-auto">
         <img
           src={meal.image}
           alt={meal.title}
@@ -21,7 +21,7 @@ export default function MealBlock({ meal }: Props) {
       </div>
 
       {/* Middle: Meal Details */}
-      <div className="w-1/2 flex flex-col h-full space-y-3">
+      <div className="w-full md:w-1/2 flex flex-col space-y-3">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{meal.title}</h2>
           <div className="mt-2">
@@ -32,7 +32,7 @@ export default function MealBlock({ meal }: Props) {
         </div>
 
         <div className="flex flex-col mt-3 gap-3 text-sm text-gray-700">
-          <div className="flex  items-center gap-2">
+          <div className="flex items-center gap-2">
             <div className="bg-gray-100 p-2 rounded-lg">
               <Timer />
             </div>
@@ -41,6 +41,7 @@ export default function MealBlock({ meal }: Props) {
               <p className="font-semibold">{meal.readyInMinutes} mins</p>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
             <div className="bg-gray-100 p-2 rounded-lg">
               <Heart />
@@ -53,7 +54,7 @@ export default function MealBlock({ meal }: Props) {
         </div>
 
         {/* Fixed bottom button */}
-        <div className="mt-auto pt-3">
+        <div className="mt-4 md:mt-auto">
           <button className="w-full bg-green-500 hover:bg-green-600 transition-colors text-white font-semibold py-2 rounded-xl">
             View Recipe
           </button>
@@ -61,7 +62,7 @@ export default function MealBlock({ meal }: Props) {
       </div>
 
       {/* Right: Nutrients */}
-      <div className="grid grid-rows-4 gap-4 w-1/5 text-sm">
+      <div className="w-full md:w-1/5 grid grid-cols-2 md:grid-cols-1 gap-4 text-sm">
         {[
           {
             label: "Calories",

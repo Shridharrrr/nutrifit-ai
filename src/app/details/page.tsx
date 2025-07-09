@@ -216,9 +216,9 @@ export default function GoalSetupForm() {
       render: () => (
         <div className="flex flex-col items-center w-full space-y-8">
           <div className="w-full space-y-2">
-            <h3 className="text-lg font-medium text-gray-700">Food Restrictions</h3>
+            <h3 className="text-lg font-medium text-gray-700">Food Restrictions :</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {["Vegetarian", "Vegan", "Gluten-free", "Dairy-free", "Kosher", "Halal", "Pescatarian", "Nut-free"].map((restriction) => (
+              {["vegetarian", "vegan", "gluten free", "ketogenic", "lacto-vegetarian", "paleo", "pescetarian", "ovo-vegetarian"].map((restriction) => (
                 <button
                   key={restriction}
                   onClick={() => {
@@ -235,13 +235,12 @@ export default function GoalSetupForm() {
                     setFormData({ ...formData, restrictions: newRestrictions });
                   }}
 
-                  className={`py-2 px-3 rounded-lg border transition-all flex gap-4 text-sm ${
+                  className={`py-2 px-3 rounded-lg border transition-all text-sm ${
                     formData.restrictions.includes(restriction)
                       ? "bg-green-500 text-white border-green-500"
                       : "bg-white text-gray-700 border-gray-200 hover:border-green-300"
                   }`}
                 >
-                  <ThumbsUpIcon/>
                   {restriction}
                 </button>
               ))}
@@ -249,7 +248,7 @@ export default function GoalSetupForm() {
           </div>
           
           <div className="w-full space-y-2">
-            <h3 className="text-lg font-medium text-gray-700">Health Conditions</h3>
+            <h3 className="text-lg font-medium text-gray-700">Health Conditions :</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {["Diabetes", "Hypertension", "Heart Disease", "PCOS", "Thyroid", "IBS", "Celiac", "Cholesterol"].map((condition) => (
                 <button
