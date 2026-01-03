@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Cherry, Utensils, Clock, HeartPulse, ShoppingCart, ClipboardList, ChefHat, ShoppingBag, UtensilsCrossed, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FAQItemProps {
   question: string;
@@ -98,6 +99,13 @@ const FeatureCard: React.FC<FeatureProps> = ({ icon, title, description, index }
 
 export default function LandingPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/home');
+    }
+  }, [user, loading, router]);
   const faqItems = [
     {
       question: "How are the meal plans customized?",
@@ -169,23 +177,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className=" text-green-500 p-4 shadow-md">
-        <div className="container mx-auto flex justify-between items-center">
-        <h1 className="flex items-center justify-center text-2xl font-bold text-center ml-3">
-            <span className="text-gray-800">NutriFit</span>
-            <span className="text-green-500">AI</span>
-            <span className="text-green-500">
-              <Cherry strokeWidth={2.5} size={23} />
-            </span>
-          </h1>
-         
-          <button onClick={() => {router.push("/login")}} className=" text-white px-4 py-2 mr-3 w-[120px] rounded-md font-medium text-base bg-green-500 hover:bg-green-600 transition">
-              Sign In
-            </button>
-  
-        </div>
-      </nav>
 
       {/* Hero Section */}
       <section className="relative bg-linear-to-r from-green-600 via-lime-500 to-green-600 text-white pt-10 overflow-hidden">

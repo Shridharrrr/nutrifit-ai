@@ -8,6 +8,7 @@ import { saveUserData } from "@/methods/userdata";
 import BmrCalculator from "@/components/ActivityProps";
 import { UserData } from "@/models/userModel";
 import { useRouter } from "next/navigation";
+import PageLoader from "@/components/PageLoader";
 
 export default function GoalSetupForm() {
   const router = useRouter()
@@ -308,7 +309,7 @@ export default function GoalSetupForm() {
     } else {
       saveUserData(formData);
       alert("Thanks! Your answers have been saved.");
-      router.push("/my-meal")
+      router.push("/home")
     }
   };
 
@@ -317,7 +318,8 @@ export default function GoalSetupForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center  bg-green-500 p-4">
+    <PageLoader>
+      <div className="min-h-screen flex items-center justify-center  bg-green-500 p-4">
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-xl h-auto max-h-[90vh] w-full max-w-2xl flex flex-col">
         {/* Header */}
         <div className="mb-4">
@@ -375,5 +377,6 @@ export default function GoalSetupForm() {
         </div>
       </div>
     </div>
+    </PageLoader>
   );
 }

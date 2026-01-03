@@ -1,3 +1,4 @@
+// app/api/generate-meals/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/config/firebase";
 import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
@@ -5,115 +6,140 @@ import axios from "axios";
 
 export async function POST(req: NextRequest) {
   try {
-    const { uid, calories, intolerances } = await req.json();
+    const { uid, calories, intolerances, diet } = await req.json();
 
+    // Validate input
     if (!uid || !calories) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "UID and calories are required" },
         { status: 400 }
       );
     }
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing Spoonacular API key" },
-        { status: 500 }
-      );
-    }
+    if (!apiKey) throw new Error("API key not configured");
 
+    // Check existing meals
     const userRef = doc(db, "users", uid);
     const userDoc = await getDoc(userRef);
-
     if (!userDoc.exists()) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const userData = userDoc.data();
-    const diet = userData?.diet || [];
     const today = new Date().toISOString().split("T")[0];
-
-    const isMealCreatedToday = diet.some((mealEntry: any) =>
-      mealEntry.createdAt?.startsWith(today)
-    );
-
-    if (isMealCreatedToday) {
+    if (userDoc.data()?.meals?.some((m: any) => m.date === today)) {
       return NextResponse.json(
-        { message: "Meals already created today." },
-        { status: 400 }
+        { error: "Meals already generated today" },
+        { status: 429 }
       );
     }
 
-    const caloriePerMeal = Math.floor(calories / 3);
+    // Generate meals
+    const baseCaloriesPerMeal = Math.floor(calories / 3);
     const mealTypes = ["breakfast", "lunch", "dinner"];
 
-    const mealPromises = mealTypes.map((type) =>
-      axios.get("https://api.spoonacular.com/recipes/complexSearch", {
-        params: {
-          type,
-          intolerances,
-          number: 1,
-          minCalories: caloriePerMeal, // slight variation
-          addRecipeInformation: true,
-          addRecipeNutrition: true,
-          sort: "random",
-          apiKey,
-        },
+    // Get recipe IDs first
+    const searchResults = await Promise.all(
+      mealTypes.map(type => 
+        axios.get("https://api.spoonacular.com/recipes/complexSearch", {
+          params: {
+            type,
+            intolerances: intolerances?.join(","),
+            diet: diet?.join(","),
+            number: 1,
+            minCalories: Math.floor(baseCaloriesPerMeal * 0.8),
+            maxCalories: Math.floor(baseCaloriesPerMeal * 1.2),
+            apiKey,
+          }
+        })
+      )
+    );
+
+    // Get full recipe details
+    const recipes = await Promise.all(
+      searchResults.map((res, i) => {
+        const recipeId = res.data.results[0]?.id;
+        if (!recipeId) throw new Error(`No ${mealTypes[i]} recipe found`);
+        
+        return axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information`, {
+          params: { includeNutrition: true, apiKey }
+        });
       })
     );
 
-    const mealResponses = await Promise.all(mealPromises);
-
-    const getFirstMeal = (res: any, type: string) => {
-      if (!res?.data?.results?.length) {
-        throw new Error(`No ${type} meal found`);
-      }
-      return res.data.results[0];
+    // Prepare meal data
+    const mealData = {
+      date: today,
+      meals: recipes.map((res, i) => ({
+        type: mealTypes[i],
+        recipe: formatRecipeData(res.data)
+      })),
+      nutrients: calculateTotalNutrients(recipes.map(r => r.data))
     };
 
-    const extractMealData = (meal: any) => {
-      const nutrients = meal.nutrition?.nutrients || [];
-      const nutrientsPerServing = nutrients.map((nutrient: any) => ({
-        name: nutrient.name,
-        amount: Number((nutrient.amount / meal.servings).toFixed(2)),
-        unit: nutrient.unit,
-      }));
-
-      return {
-        id: meal.id,
-        title: meal.title,
-        image: meal.image,
-        readyInMinutes: meal.readyInMinutes,
-        summary: meal.summary,
-        healthScore: meal.healthScore,
-        sourceUrl: meal.sourceUrl,
-        servings: meal.servings,
-        nutrients: nutrientsPerServing,
-      };
-    };
-
-    const meals = {
-      breakfast: extractMealData(getFirstMeal(mealResponses[0], "breakfast")),
-      lunch: extractMealData(getFirstMeal(mealResponses[1], "lunch")),
-      dinner: extractMealData(getFirstMeal(mealResponses[2], "dinner")),
-    };
-
+    // Store in Firestore
     await updateDoc(userRef, {
-      diet: arrayUnion({
-        createdAt: new Date().toISOString(),
-        meals,
-      }),
+      meals: arrayUnion(mealData),
+      lastMealGenerated: new Date().toISOString()
     });
 
-    return NextResponse.json(
-      { message: "Meals saved", meals },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, data: mealData });
+
   } catch (error: any) {
     console.error("Error generating meals:", error.message);
     return NextResponse.json(
-      { error: "Failed to generate meals" },
+      { error: error.message || "Meal generation failed" },
       { status: 500 }
     );
   }
+}
+
+function formatRecipeData(recipe: any) {
+  return {
+    id: recipe.id,
+    title: recipe.title,
+    image: recipe.image,
+    readyInMinutes: recipe.readyInMinutes,
+    summary: recipe.summary?.replace(/<[^>]*>/g, ''),
+    instructions: recipe.instructions?.replace(/<[^>]*>/g, '') || "No instructions provided",
+    ingredients: recipe.extendedIngredients?.map((i: any) => ({
+      id: i.id,
+      name: i.name,
+      amount: i.amount,
+      unit: i.unit,
+      original: i.original
+    })),
+    nutrients: recipe.nutrition?.nutrients?.map((n: any) => ({
+      name: n.name,
+      amount: parseFloat(n.amount.toFixed(2)),
+      unit: n.unit,
+      percentOfDailyNeeds: n.percentOfDailyNeeds
+    })),
+    servings: recipe.servings,
+    sourceUrl: recipe.sourceUrl,
+    diets: recipe.diets || [],
+    dishTypes: recipe.dishTypes || []
+  };
+}
+
+function calculateTotalNutrients(recipes: any[]) {
+  const totals: Record<string, any> = {};
+  
+  recipes.forEach(recipe => {
+    recipe.nutrition?.nutrients?.forEach((nutrient: any) => {
+      if (!totals[nutrient.name]) {
+        totals[nutrient.name] = {
+          amount: 0,
+          unit: nutrient.unit
+        };
+      }
+      totals[nutrient.name].amount += nutrient.amount;
+    });
+  });
+
+  return Object.entries(totals).map(([name, data]) => ({
+    name,
+    amount: parseFloat(data.amount.toFixed(2)),
+    unit: data.unit
+  }));
 }

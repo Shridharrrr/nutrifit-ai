@@ -11,13 +11,31 @@ export const LogoutUser = async () => {
 };
 
 export const SignupUser = async (email: string, password: string) => {
-  await createUserWithEmailAndPassword(auth, email, password);
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    return result;
+  } catch (error) {
+    console.error('Signup error:', error);
+    throw error;
+  }
 };
 
 export const SigninUser = async (email: string, password: string) => {
-  await signInWithEmailAndPassword(auth, email, password);
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result;
+  } catch (error) {
+    console.error('Signin error:', error);
+    throw error;
+  }
 };
 
 export const GoogleSignupUser = async () => {
-  return await signInWithPopup(auth, googleProvider);
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return result;
+  } catch (error) {
+    console.error('Google signup error:', error);
+    throw error;
+  }
 };

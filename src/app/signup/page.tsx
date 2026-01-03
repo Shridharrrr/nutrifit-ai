@@ -1,41 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SignupUser, GoogleSignupUser } from "@/methods/auth";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, ArrowRight } from "lucide-react";
+import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { useNotification } from "@/hooks/useNotification";
+import Notification from "@/components/Notification";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import PageLoader from "@/components/PageLoader";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{email?: string, password?: string}>({});
+  const [isValid, setIsValid] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const { notification, showNotification, hideNotification } = useNotification();
 
-  const handleSignup = async () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex = /^(?=.*\d).{6,}$/;
-  
-    if (!email.trim() || !password.trim()) {
-      alert("Please fill in both email and password.");
+  // Prevent hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Form validation
+  const validateForm = () => {
+    const newErrors: {email?: string, password?: string} = {};
+    
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!password.trim()) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    } else if (!/\d/.test(password)) {
+      newErrors.password = "Password must contain at least one number";
+    }
+    
+    setErrors(newErrors);
+    setIsValid(Object.keys(newErrors).length === 0);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
-  
-    if (!emailRegex.test(email)) {
-      alert("Please enter a valid email address.");
-      return;
-    }
-  
-    if (!passwordRegex.test(password)) {
-      alert("Password does not fulfill mentioned criteria.");
-      return;
-    }
-  
+
     try {
       setIsLoading(true);
       await SignupUser(email, password);
+      showNotification("Account created successfully! Please complete your profile.", 'success');
       router.push("/details");
-    } catch (err) {
-      alert("Signup failed: " + (err as any).message);
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      let errorMessage = "Signup failed. Please try again.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = "An account with this email already exists. Please sign in instead.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Invalid email address.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = "Password is too weak. Please choose a stronger password.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -45,83 +85,174 @@ export default function Signup() {
     try {
       setIsLoading(true);
       await GoogleSignupUser();
+      showNotification("Account created successfully! Please complete your profile.", 'success');
       router.push("/details");
-    } catch (err) {
-      alert("Google Sign-in failed: " + (err as any).message);
+    } catch (error: any) {
+      console.error("Google signup error:", error);
+      let errorMessage = "Google signup failed. Please try again.";
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Signup cancelled. Please try again.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Popup blocked. Please allow popups and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showNotification(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+    <PageLoader>
+      <ErrorBoundary>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
+        {/* Notification */}
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+        />
+        
+        <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-gray-100">
+          {/* Header */}
           <div className="text-center space-y-2">
+            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-blue-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <span className="text-2xl">🥗</span>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900">Create an account</h1>
-            <p className="text-gray-500">Sign up to get started</p>
+            <p className="text-gray-500">Join NutriFit AI and start your healthy journey</p>
           </div>
 
-          <div className="space-y-4">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="email"
-                placeholder="Email address"
-                className="text-black w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-300"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+          {/* Form */}
+          <form onSubmit={handleSignup} className="space-y-4">
+            {/* Email Field */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all ${
+                    errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  }`}
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) {
+                      setErrors(prev => ({ ...prev, email: undefined }));
+                    }
+                  }}
+                  onBlur={validateForm}
+                />
+                {email && !errors.email && (
+                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 h-5 w-5" />
+                )}
+              </div>
+              {errors.email && (
+                <div className="flex items-center space-x-1 text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errors.email}</span>
+                </div>
+              )}
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-              <input
-                type="password"
-                placeholder="Password"
-                className="text-black w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-gray-300"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+            {/* Password Field */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all ${
+                    errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  }`}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) {
+                      setErrors(prev => ({ ...prev, password: undefined }));
+                    }
+                  }}
+                  onBlur={validateForm}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {errors.password && (
+                <div className="flex items-center space-x-1 text-red-600 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{errors.password}</span>
+                </div>
+              )}
             </div>
 
+            {/* Password Requirements */}
             <div className="text-sm space-y-1 pl-2 pt-1">
-              <p className={`flex items-center space-x-1 ${password.length >= 6 ? "text-green-500" : "text-gray-400"}`}>
-                <span>•</span> <span>Password must be atleast 6 characters long.</span>
+              <p className={`flex items-center space-x-2 ${password.length >= 6 ? "text-green-500" : "text-gray-400"}`}>
+                <span className="w-1 h-1 bg-current rounded-full"></span>
+                <span>At least 6 characters long</span>
+                {password.length >= 6 && <CheckCircle className="h-4 w-4" />}
               </p>
-              <p className={`flex items-center space-x-1 ${/\d/.test(password) ? "text-green-500" : "text-gray-400"}`}>
-                <span>•</span> <span>Password must contain atleast 1 number.</span>
+              <p className={`flex items-center space-x-2 ${/\d/.test(password) ? "text-green-500" : "text-gray-400"}`}>
+                <span className="w-1 h-1 bg-current rounded-full"></span>
+                <span>Contains at least one number</span>
+                {/\d/.test(password) && <CheckCircle className="h-4 w-4" />}
               </p>
             </div>
 
+            {/* Sign Up Button */}
             <button
-              onClick={handleSignup}
-              disabled={isLoading}
-              className={`w-full bg-blue-600 text-white py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-                isLoading
-                  ? "opacity-70 cursor-not-allowed"
-                  : "hover:bg-blue-700 active:transform active:scale-95"
+              type="submit"
+              disabled={isLoading || !isValid}
+              className={`w-full py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                isLoading || !isValid
+                  ? "opacity-70 cursor-not-allowed bg-gray-400"
+                  : "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 active:transform active:scale-95 text-white shadow-lg"
               }`}
             >
-              <span>{isLoading ? "Creating..." : "Create Account"}</span>
-              {!isLoading && <ArrowRight className="h-4 w-4" />}
+              {isLoading ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
+          {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              <span className="px-4 bg-white text-gray-500 font-medium">
+                Or continue with
+              </span>
             </div>
           </div>
 
+          {/* Google Signup Button */}
           <button
             onClick={handleGoogleSignup}
             disabled={isLoading}
-            className={`w-full flex items-center justify-center space-x-2 py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 ${
-              isLoading ? "opacity-70 cursor-not-allowed" : ""
+            className={`w-full flex items-center justify-center space-x-3 py-3 border-2 border-gray-200 rounded-lg transition-all duration-200 ${
+              isLoading 
+                ? "opacity-70 cursor-not-allowed" 
+                : "hover:border-gray-300 hover:bg-gray-50 active:transform active:scale-95"
             }`}
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -142,17 +273,25 @@ export default function Signup() {
                 fill="#EA4335"
               />
             </svg>
-            <span className="text-gray-600 font-medium">Signup with Google</span>
+            <span className="text-gray-700 font-medium">
+              {isLoading ? "Creating account..." : "Sign up with Google"}
+            </span>
           </button>
 
+          {/* Sign In Link */}
           <div className="text-center text-sm text-gray-500">
             Already have an account?{" "}
-            <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-              Sign in
+            <a 
+              href="/login" 
+              className="text-green-600 hover:text-green-700 font-medium hover:underline transition-colors"
+            >
+              Sign in here
             </a>
           </div>
         </div>
       </div>
     </div>
+      </ErrorBoundary>
+    </PageLoader>
   );
 }

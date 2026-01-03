@@ -3,38 +3,33 @@
 import { useEffect, useState } from "react";
 import MealBlock from "@/components/mealBlock";
 import axios from "axios";
-import { auth } from "@/config/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { doc, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { db } from "@/config/firebase";
 import { foodItem } from "@/models/foodModel";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useNotification } from "@/hooks/useNotification";
+import Notification from "@/components/Notification";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function MealPage() {
+  const { user } = useAuth();
+  const { notification, showNotification, hideNotification } = useNotification();
   const [hasMealToday, setHasMealToday] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [meals, setMeals] = useState<foodItem[]>([]);
-  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   // Format date consistently
   const getTodayDateString = () => new Date().toLocaleDateString("en-CA");
 
-  // Show notification and auto-hide after 3 seconds
-  const showNotification = (message: string, type: 'success' | 'error') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-
   // Fetch user's meals for today
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        await fetchTodayMeals(user.uid);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+    if (user) {
+      fetchTodayMeals(user.uid);
+    } else {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const fetchTodayMeals = async (uid: string) => {
     try {
@@ -68,7 +63,6 @@ export default function MealPage() {
   };
 
   const generateMealPlan = async () => {
-    const user = auth.currentUser;
     if (!user) {
       showNotification("Please sign in to generate a meal plan", 'error');
       return;
@@ -80,27 +74,31 @@ export default function MealPage() {
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const data = userSnap.data();
-        const restrictions = data.restrictions?.filter((r: string) => r !== "None") || [];
-        const calories = data.tdee;
+        const userData = userSnap.data();
+        const restrictions = userData.restrictions?.filter((r: string) => r !== "None") || [];
+        const calories = userData.tdee;
 
         const response = await axios.post("/api/my-meal", {
           uid: user.uid,
           calories,
-          intolerances: restrictions.join(","),
+          intolerances: restrictions,
+          diet: restrictions,
         });
 
-        const { breakfast, lunch, dinner } = response.data.meals;
-        const formattedMeals = [
-          { ...breakfast, period: "Breakfast" },
-          { ...lunch, period: "Lunch" },
-          { ...dinner, period: "Dinner" },
-        ];
+        const { data: mealData } = response.data;
+        const formattedMeals = mealData.meals.map((meal: any) => ({
+          ...meal.recipe,
+          period: meal.type.charAt(0).toUpperCase() + meal.type.slice(1),
+        }));
 
         await updateDoc(userRef, {
           diet: arrayUnion({
             createdAt: getTodayDateString(),
-            meals: { breakfast, lunch, dinner },
+            meals: {
+              breakfast: mealData.meals[0].recipe,
+              lunch: mealData.meals[1].recipe,
+              dinner: mealData.meals[2].recipe,
+            },
           }),
         });
 
@@ -146,42 +144,41 @@ export default function MealPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Notification */}
-      {notification && (
-        <div className={`fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
-          notification.type === 'success' 
-            ? 'bg-green-100 text-green-800 border border-green-200'
-            : 'bg-red-100 text-red-800 border border-red-200'
-        }`}>
-          {notification.message}
-        </div>
-      )}
+    <ProtectedRoute>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Notification */}
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          isVisible={notification.isVisible}
+          onClose={hideNotification}
+        />
 
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">My Meal Plan</h1>
-          <p className="text-gray-500">
-            {hasMealToday ? "Today's meals" : "Create your meal plan for today"}
-          </p>
-        </div>
-        
-        <button
-          onClick={generateMealPlan}
-          disabled={hasMealToday || isLoading}
-          className={`w-full sm:w-auto px-4 py-2 rounded-md font-medium transition-colors ${
-            hasMealToday || isLoading
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600 text-white'
-          }`}
-        >
-          {hasMealToday ? "Meal Plan Generated" : "Generate Meal Plan"}
-        </button>
-      </header>
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">My Meal Plan</h1>
+            <p className="text-gray-500">
+              {hasMealToday ? "Today's meals" : "Create your meal plan for today"}
+            </p>
+          </div>
+          
+          <button
+            onClick={generateMealPlan}
+            disabled={hasMealToday || isLoading}
+            className={`w-full sm:w-auto px-4 py-2 rounded-md font-medium transition-colors ${
+              hasMealToday || isLoading
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            {hasMealToday ? "Meal Plan Generated" : "Generate Meal Plan"}
+          </button>
+        </header>
 
-      <div className="space-y-6">
-        {renderMealContent()}
+        <div className="space-y-6">
+          {renderMealContent()}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
