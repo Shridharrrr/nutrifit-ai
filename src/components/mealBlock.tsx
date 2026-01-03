@@ -10,6 +10,12 @@ interface Props {
 export default function MealBlock({ meal }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const getHealthScoreColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 50) return "text-yellow-600";
+    return "text-red-600";
+  };
+
   return (
     <div className="bg-white hover:scale-[1.02] hover:shadow-xl transition-all duration-300 ease-in-out rounded-xl p-4 flex flex-col md:flex-row items-stretch justify-between w-full max-w-4xl mx-auto gap-4 border">
       {/* Left: Image */}
@@ -42,21 +48,11 @@ export default function MealBlock({ meal }: Props) {
               <p className="font-semibold">{meal.readyInMinutes} mins</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="bg-gray-100 p-2 rounded-lg">
-              <Heart />
-            </div>
-            <div>
-              <p>Health Score</p>
-              <p className="font-semibold">{meal.healthScore}</p>
-            </div>
-          </div>
         </div>
 
         {/* Fixed bottom button */}
         <div className="mt-4 md:mt-auto">
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="w-full bg-green-500 hover:bg-green-600 transition-colors text-white font-semibold py-2 rounded-xl"
           >
@@ -69,9 +65,9 @@ export default function MealBlock({ meal }: Props) {
       <div className="w-full md:w-1/5 grid grid-cols-2 md:grid-cols-1 gap-4 text-sm">
         {(() => {
           // Find nutrients by name to avoid index issues
-          const findNutrient = (name: string) => 
+          const findNutrient = (name: string) =>
             meal.nutrients?.find(n => n.name.toLowerCase().includes(name.toLowerCase())) || { amount: 0 };
-          
+
           return [
             {
               label: "Calories",
