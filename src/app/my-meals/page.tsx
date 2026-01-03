@@ -33,26 +33,23 @@ export default function MealPage() {
 
   const fetchTodayMeals = async (uid: string) => {
     try {
-      const userRef = doc(db, "users", uid);
-      const userSnap = await getDoc(userRef);
+      const today = getTodayDateString();
+      const mealRef = doc(db, "users", uid, "meals", today);
+      const mealSnap = await getDoc(mealRef);
 
-      if (userSnap.exists()) {
-        const diet = userSnap.data().diet || [];
-        const todayMeal = diet.find(
-          (entry: any) => 
-            new Date(entry.createdAt).toLocaleDateString("en-CA") === getTodayDateString()
-        );
-
-        if (todayMeal) {
-          setHasMealToday(true);
-          const formattedMeals: foodItem[] = [
-            { ...todayMeal.meals.breakfast, period: "Breakfast" },
-            { ...todayMeal.meals.lunch, period: "Lunch" },
-            { ...todayMeal.meals.dinner, period: "Dinner" },
-          ];
-          setMeals(formattedMeals);
-          localStorage.setItem("todayMeals", JSON.stringify(formattedMeals));
-        }
+      if (mealSnap.exists()) {
+        setHasMealToday(true);
+        const todayMeal = mealSnap.data();
+        const formattedMeals: foodItem[] = [
+          { ...todayMeal.meals[0].recipe, period: "Breakfast" },
+          { ...todayMeal.meals[1].recipe, period: "Lunch" },
+          { ...todayMeal.meals[2].recipe, period: "Dinner" },
+        ];
+        setMeals(formattedMeals);
+        localStorage.setItem("todayMeals", JSON.stringify(formattedMeals));
+      } else {
+        setHasMealToday(false);
+        setMeals([]);
       }
     } catch (error) {
       console.error("Error fetching meals:", error);
@@ -62,11 +59,13 @@ export default function MealPage() {
     }
   };
 
-  const generateMealPlan = async () => {
+  const generateMealPlan = async (regenerate: boolean = false) => {
     if (!user) {
       showNotification("Please sign in to generate a meal plan", 'error');
       return;
     }
+
+    if (hasMealToday && !regenerate) return;
 
     try {
       setIsLoading(true);
@@ -83,35 +82,26 @@ export default function MealPage() {
           calories,
           intolerances: restrictions,
           diet: restrictions,
+          regenerate
         });
 
         const { data: mealData } = response.data;
+        // API returns meals array: [{ type: 'breakfast', recipe: {...} }, ...]
         const formattedMeals = mealData.meals.map((meal: any) => ({
           ...meal.recipe,
           period: meal.type.charAt(0).toUpperCase() + meal.type.slice(1),
         }));
 
-        await updateDoc(userRef, {
-          diet: arrayUnion({
-            createdAt: getTodayDateString(),
-            meals: {
-              breakfast: mealData.meals[0].recipe,
-              lunch: mealData.meals[1].recipe,
-              dinner: mealData.meals[2].recipe,
-            },
-          }),
-        });
-
         setHasMealToday(true);
         setMeals(formattedMeals);
-        showNotification("Meal plan generated successfully!", 'success');
+        showNotification(regenerate ? "Meal plan regenerated!" : "Meal plan generated successfully!", 'success');
       }
     } catch (error) {
       console.error("Error generating meal plan:", error);
       const errorMessage = axios.isAxiosError(error)
         ? error.response?.data?.error || "Failed to generate meal plan"
         : "An unexpected error occurred";
-      
+
       showNotification(errorMessage, 'error');
     } finally {
       setIsLoading(false);
@@ -161,18 +151,27 @@ export default function MealPage() {
               {hasMealToday ? "Today's meals" : "Create your meal plan for today"}
             </p>
           </div>
-          
-          <button
-            onClick={generateMealPlan}
-            disabled={hasMealToday || isLoading}
-            className={`w-full sm:w-auto px-4 py-2 rounded-md font-medium transition-colors ${
-              hasMealToday || isLoading
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}
-          >
-            {hasMealToday ? "Meal Plan Generated" : "Generate Meal Plan"}
-          </button>
+
+          <div className="flex gap-2">
+            {hasMealToday && (
+              <button
+                onClick={() => generateMealPlan(true)}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-md font-medium transition-colors bg-amber-500 hover:bg-amber-600 text-white disabled:opacity-50"
+              >
+                Regenerate Plan
+              </button>
+            )}
+            {!hasMealToday && (
+              <button
+                onClick={() => generateMealPlan(false)}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-md font-medium transition-colors bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
+              >
+                Generate Meal Plan
+              </button>
+            )}
+          </div>
         </header>
 
         <div className="space-y-6">
