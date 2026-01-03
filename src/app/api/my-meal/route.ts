@@ -1,12 +1,12 @@
-// app/api/generate-meals/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/config/firebase";
-import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import axios from "axios";
 
 export async function POST(req: NextRequest) {
   try {
-    const { uid, calories, intolerances, diet } = await req.json();
+    const { uid, calories, intolerances, diet, regenerate } = await req.json();
 
     // Validate input
     if (!uid || !calories) {
@@ -17,20 +17,21 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.SPOONACULAR_API_KEY;
-    if (!apiKey) throw new Error("API key not configured");
-
-    // Check existing meals
-    const userRef = doc(db, "users", uid);
-    const userDoc = await getDoc(userRef);
-    if (!userDoc.exists()) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!apiKey) {
+      console.error("SPOONACULAR_API_KEY is missing in environment variables.");
+      return NextResponse.json({ error: "Server configuration error: API Key missing" }, { status: 500 });
     }
 
+    // Check existing meals in subcollection
     const today = new Date().toISOString().split("T")[0];
-    if (userDoc.data()?.meals?.some((m: any) => m.date === today)) {
+    const mealDocRef = doc(db, "users", uid, "meals", today);
+    const mealDoc = await getDoc(mealDocRef);
+
+    if (mealDoc.exists() && !regenerate) {
+      // Return 409 CONFLICT to signal "Already exists" without implying rate limiting (429)
       return NextResponse.json(
-        { error: "Meals already generated today" },
-        { status: 429 }
+        { error: "Meals already generated today. Use 'Regenerate' to overwrite." },
+        { status: 409 }
       );
     }
 
@@ -39,28 +40,43 @@ export async function POST(req: NextRequest) {
     const mealTypes = ["breakfast", "lunch", "dinner"];
 
     // Get recipe IDs first
-    const searchResults = await Promise.all(
-      mealTypes.map(type => 
-        axios.get("https://api.spoonacular.com/recipes/complexSearch", {
-          params: {
-            type,
-            intolerances: intolerances?.join(","),
-            diet: diet?.join(","),
-            number: 1,
-            minCalories: Math.floor(baseCaloriesPerMeal * 0.8),
-            maxCalories: Math.floor(baseCaloriesPerMeal * 1.2),
-            apiKey,
-          }
-        })
-      )
-    );
+    let searchResults;
+    try {
+      searchResults = await Promise.all(
+        mealTypes.map(type =>
+          axios.get("https://api.spoonacular.com/recipes/complexSearch", {
+            params: {
+              type,
+              intolerances: intolerances?.join(","),
+              diet: diet?.join(","),
+              number: 1,
+              minCalories: Math.floor(baseCaloriesPerMeal * 0.8),
+              maxCalories: Math.floor(baseCaloriesPerMeal * 1.2),
+              apiKey,
+              sort: "random"
+            }
+          })
+        )
+      );
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 402 || error.response?.status === 429) {
+          console.error("Spoonacular API Limit/Quota Exceeded:", error.response?.data);
+          return NextResponse.json({
+            error: "Daily meal plan generation quota reached. Please try again tomorrow."
+          }, { status: 429 });
+        }
+      }
+      console.error("Spoonacular Search Error:", error.message);
+      throw error; // Rethrow to main catch
+    }
 
     // Get full recipe details
     const recipes = await Promise.all(
       searchResults.map((res, i) => {
         const recipeId = res.data.results[0]?.id;
-        if (!recipeId) throw new Error(`No ${mealTypes[i]} recipe found`);
-        
+        if (!recipeId) throw new Error(`No ${mealTypes[i]} recipe found matching criteria`);
+
         return axios.get(`https://api.spoonacular.com/recipes/${recipeId}/information`, {
           params: { includeNutrition: true, apiKey }
         });
@@ -74,12 +90,17 @@ export async function POST(req: NextRequest) {
         type: mealTypes[i],
         recipe: formatRecipeData(res.data)
       })),
-      nutrients: calculateTotalNutrients(recipes.map(r => r.data))
+      nutrients: calculateTotalNutrients(recipes.map(r => r.data)),
+      createdAt: new Date().toISOString()
     };
 
-    // Store in Firestore
+    // Store in Firestore Subcollection
+    // This naturally handles overwrite if regenerate is true
+    await setDoc(mealDocRef, mealData);
+
+    // Update lastMealGenerated on user doc for metadata
+    const userRef = doc(db, "users", uid);
     await updateDoc(userRef, {
-      meals: arrayUnion(mealData),
       lastMealGenerated: new Date().toISOString()
     });
 
@@ -87,6 +108,9 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("Error generating meals:", error.message);
+    if (error.response) {
+      console.error("Upstream API Error Details:", error.response.data);
+    }
     return NextResponse.json(
       { error: error.message || "Meal generation failed" },
       { status: 500 }
@@ -124,7 +148,7 @@ function formatRecipeData(recipe: any) {
 
 function calculateTotalNutrients(recipes: any[]) {
   const totals: Record<string, any> = {};
-  
+
   recipes.forEach(recipe => {
     recipe.nutrition?.nutrients?.forEach((nutrient: any) => {
       if (!totals[nutrient.name]) {
