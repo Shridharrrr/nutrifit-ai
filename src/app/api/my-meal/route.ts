@@ -6,7 +6,7 @@ import axios from "axios";
 
 export async function POST(req: NextRequest) {
   try {
-    const { uid, calories, intolerances, diet, regenerate } = await req.json();
+    const { uid, calories, intolerances, diet, regenerate, date } = await req.json();
 
     // Validate input
     if (!uid || !calories) {
@@ -23,8 +23,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Check existing meals in subcollection
-    const today = new Date().toISOString().split("T")[0];
-    const mealDocRef = doc(db, "users", uid, "meals", today);
+    // Use client-provided date or fallback to server UTC date
+    const targetDate = date || new Date().toISOString().split("T")[0];
+    const mealDocRef = doc(db, "users", uid, "meals", targetDate);
     const mealDoc = await getDoc(mealDocRef);
 
     if (mealDoc.exists() && !regenerate) {
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     // Prepare meal data
     const mealData = {
-      date: today,
+      date: targetDate,
       meals: recipes.map((res, i) => ({
         type: mealTypes[i],
         recipe: formatRecipeData(res.data)

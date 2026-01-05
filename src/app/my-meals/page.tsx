@@ -77,12 +77,15 @@ export default function MealPage() {
         const restrictions = userData.restrictions?.filter((r: string) => r !== "None") || [];
         const calories = userData.tdee;
 
+        const todayDate = getTodayDateString();
+
         const response = await axios.post("/api/my-meal", {
           uid: user.uid,
           calories,
           intolerances: restrictions,
           diet: restrictions,
-          regenerate
+          regenerate,
+          date: todayDate
         });
 
         const { data: mealData } = response.data;

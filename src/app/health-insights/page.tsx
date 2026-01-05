@@ -51,6 +51,30 @@ export default function HealthInsightsPage() {
     }
   };
 
+  useEffect(() => {
+    if (userData && !aiInsights) {
+      fetchAiInsights();
+    }
+  }, [userData]);
+
+  const fetchAiInsights = async () => {
+    if (!userData) return;
+
+    try {
+      setIsAiLoading(true);
+      const response = await axios.post("/api/gemini-insights", {
+        userData,
+        type: "analysis"
+      });
+
+      setAiInsights(response.data);
+    } catch (error) {
+      console.error("Error fetching AI insights:", error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   const calculateBMI = (height: number, weight: number) => {
     const heightInMeters = height / 100;
     return (weight / (heightInMeters * heightInMeters)).toFixed(1);
@@ -210,9 +234,9 @@ export default function HealthInsightsPage() {
         )}
 
         {isAiLoading && !aiInsights && (
-          <div className="mb-8 p-8 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400">
-            <Sparkles className="w-8 h-8 mb-3 animate-pulse text-purple-400" />
-            <p>Generating personalized AI insights...</p>
+          <div className="mb-8 p-8 border-2 border-dashed border-purple-200 bg-purple-50 rounded-xl flex flex-col items-center justify-center text-purple-400">
+            <Sparkles className="w-8 h-8 mb-3 animate-pulse text-purple-500" />
+            <p className="font-medium animate-pulse">Analyzing your health profile...</p>
           </div>
         )}
 

@@ -14,37 +14,54 @@ import axios from "axios";
 export default function HomePage() {
   const { user } = useAuth();
   const router = useRouter();
+  /* New State for Activity */
+  const [hasMealPlan, setHasMealPlan] = React.useState(false);
+  const [profileComplete, setProfileComplete] = React.useState(false);
   const [dailyTip, setDailyTip] = React.useState<string>("");
 
   React.useEffect(() => {
-    const fetchDailyTip = async () => {
+    const fetchData = async () => {
       if (!user) return;
+
       try {
-        // Fetch minimal user data for personalization
-        // importing db would be needed, or just skip personalization for the tip on home page?
-        // User asked for "personalized", so I should try.
-        // But importing db and everything might be clutter if not already there.
-        // Let's check imports.
-        // I'll make a specialized call that might not need full user data if I can't get it easily, 
-        // OR I will add the imports.
-        // Let's try to do it properly.
+        // 1. Fetch User Data
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        let currentUserData = {};
 
-        // Actually, to avoid huge refactor of Home, I will genericize it or 
-        // make the API handle userId? No, API takes userData JSON.
-        // I will assume the existing "Daily Nutrition Tip" section exists and replace it.
+        if (userSnap.exists()) {
+          currentUserData = userSnap.data();
+          setProfileComplete(true);
+        }
 
-        // I'll use a hardcoded default for now until I confirm I can validly import db.
-        // Wait, I can just import db. 
-        // I'll skip personalization of the *tip* on the home page if it's too complex, 
-        // BUT the user expressly said "personalized".
-        // I see `useAuth` is used. I'll add `import { db } from "@/config/firebase";` and `import { doc, getDoc } from "firebase/firestore";`
-        // Validation: I didn't verify imports in Home Page completely.
+        // 2. Fetch Daily Tip (using the fetched user data)
+        try {
+          const response = await axios.post("/api/gemini-insights", {
+            userData: currentUserData,
+            type: "daily-tip"
+          });
+          if (response.data.tip) {
+            setDailyTip(response.data.tip);
+          }
+        } catch (tipError) {
+          console.error("Failed to fetch tip", tipError);
+          setDailyTip("Stay consistent with your meals for better health!");
+        }
 
-        // Strategy: Just hit the API with type="daily-tip" and empty userData?
-        // My API uses userData.age etc. It will say "undefined".
-        // Use a lightweight fetch.
-      } catch (e) { console.error(e); }
+        // 3. Check for Meal Plan
+        const today = new Date().toLocaleDateString("en-CA");
+        const mealRef = doc(db, "users", user.uid, "meals", today);
+        const mealSnap = await getDoc(mealRef);
+        if (mealSnap.exists()) {
+          setHasMealPlan(true);
+        }
+
+      } catch (e) {
+        console.error("Error fetching home data", e);
+      }
     };
+
+    fetchData();
   }, [user]);
 
   const features = [
@@ -55,7 +72,8 @@ export default function HomePage() {
       action: "View Plans",
       href: "/my-meals",
       color: "bg-emerald-500",
-      lightColor: "bg-emerald-50 text-emerald-600"
+      lightColor: "bg-emerald-50 text-emerald-600",
+      hoverBg: "group-hover:bg-emerald-500"
     },
     {
       icon: <Target className="w-6 h-6" />,
@@ -64,7 +82,8 @@ export default function HomePage() {
       action: "Check Stats",
       href: "/profile",
       color: "bg-blue-500",
-      lightColor: "bg-blue-50 text-blue-600"
+      lightColor: "bg-blue-50 text-blue-600",
+      hoverBg: "group-hover:bg-blue-500"
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
@@ -73,7 +92,8 @@ export default function HomePage() {
       action: "Analyze",
       href: "/health-insights",
       color: "bg-purple-500",
-      lightColor: "bg-purple-50 text-purple-600"
+      lightColor: "bg-purple-50 text-purple-600",
+      hoverBg: "group-hover:bg-purple-500"
     },
     {
       icon: <Clock className="w-6 h-6" />,
@@ -82,10 +102,12 @@ export default function HomePage() {
       action: "Browse",
       href: "/recipes",
       color: "bg-amber-500",
-      lightColor: "bg-amber-50 text-amber-600"
+      lightColor: "bg-amber-50 text-amber-600",
+      hoverBg: "group-hover:bg-amber-500"
     }
   ];
 
+  /* ... framer motion variants ... */
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -104,7 +126,6 @@ export default function HomePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50/50">
-        {/* Abstract Background Shapes */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-100/50 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -140,7 +161,7 @@ export default function HomePage() {
                 >
                   <div className={`absolute top-0 right-0 w-24 h-24 ${feature.lightColor} rounded-bl-full opacity-10 transition-transform group-hover:scale-110`} />
 
-                  <div className={`${feature.lightColor} w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors group-hover:bg-opacity-100 group-hover:text-white group-hover:${feature.color}`}>
+                  <div className={`${feature.lightColor} w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:text-white ${feature.hoverBg}`}>
                     {feature.icon}
                   </div>
 
@@ -166,32 +187,60 @@ export default function HomePage() {
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-900 flex items-center">
                     <Activity className="w-5 h-5 mr-2 text-emerald-500" />
-                    Recent Activity
+                    Today's Overview
                   </h2>
                 </div>
 
                 <div className="space-y-6">
-                  {[
-                    { title: "Meal Plan Generated", desc: "Your personalized meal plan for today is ready.", time: "Just now", icon: <Utensils className="w-5 h-5" />, color: "bg-emerald-100 text-emerald-600" },
-                    { title: "Profile Updated", desc: "Your health goals have been successfully updated.", time: "2 days ago", icon: <Target className="w-5 h-5" />, color: "bg-blue-100 text-blue-600" },
-                  ].map((activity, i) => (
-                    <div key={i} className="flex gap-4 items-start p-4 hover:bg-gray-50 rounded-2xl transition-colors group">
-                      <div className={`flex-shrink-0 w-12 h-12 rounded-2xl ${activity.color} flex items-center justify-center`}>
-                        {activity.icon}
+                  {hasMealPlan ? (
+                    <div className="flex gap-4 items-start p-4 hover:bg-gray-50 rounded-2xl transition-colors">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                        <Utensils className="w-5 h-5" />
                       </div>
                       <div className="flex-grow">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-semibold text-gray-900">{activity.title}</h4>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">{activity.time}</span>
+                          <h4 className="font-semibold text-gray-900">Meal Plan Ready</h4>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">Today</span>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">{activity.desc}</p>
+                        <p className="text-sm text-gray-500 mt-1">Your meals for today have been generated.</p>
                       </div>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex gap-4 items-start p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer" onClick={() => router.push('/my-meals')}>
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                        <Utensils className="w-5 h-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-semibold text-gray-900">Meal Plan Missing</h4>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">Action Needed</span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">You haven't generated a meal plan for today yet.</p>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="p-4 rounded-2xl bg-gray-50 border border-dashed border-gray-200 text-center">
-                    <p className="text-sm text-gray-500">No more recent activity to show.</p>
-                  </div>
+                  {profileComplete && (
+                    <div className="flex gap-4 items-start p-4 hover:bg-gray-50 rounded-2xl transition-colors">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <Target className="w-5 h-5" />
+                      </div>
+                      <div className="flex-grow">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-semibold text-gray-900">Profile Active</h4>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">Status</span>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">Your health profile and goals are set.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!hasMealPlan && !profileComplete && (
+                    <div className="p-4 rounded-2xl bg-gray-50 border border-dashed border-gray-200 text-center">
+                      <p className="text-sm text-gray-500">Welcome! Start by setting up your profile.</p>
+                    </div>
+                  )}
+
                 </div>
               </motion.div>
 
@@ -205,13 +254,15 @@ export default function HomePage() {
                     <Zap className="w-6 h-6 text-yellow-300" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Daily Nutrition Tip</h3>
-                  <p className="text-emerald-100 text-sm leading-relaxed mb-6">
-                    {dailyTip || "Loading your personalized daily tip..."}
-                  </p>
-
-                  <button className="w-full py-3 bg-white text-emerald-700 rounded-xl font-semibold hover:bg-emerald-50 transition-colors shadow-sm">
-                    Read More
-                  </button>
+                  <div className="text-emerald-100 text-sm leading-relaxed min-h-[60px]">
+                    {dailyTip ? (
+                      dailyTip
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="w-5 h-5 border-2 border-emerald-200 border-t-white rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </div>
